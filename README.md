@@ -8,8 +8,8 @@ A [Pi](https://pi.dev) extension package that syncs models from an OpenAI-compat
 
 At Pi startup, the extension:
 
-1. Reads an existing provider from `~/.pi/agent/models.json`.
-2. Requests `<baseUrl>/models` with that provider's configured authentication.
+1. Finds all `openai-responses` and `openai-completions` providers in `~/.pi/agent/models.json`.
+2. Requests `<baseUrl>/models` with each provider's configured authentication.
 3. Fetches model pricing and capability metadata.
 4. Intersects the available model IDs with the metadata.
 5. Registers the resulting models through `pi.registerProvider()`.
@@ -30,17 +30,7 @@ This project is independent and is not affiliated with or endorsed by Sub2API.
 pi install git:github.com/riverscn/pi-openai-api-models-sync
 ```
 
-Create `~/.pi/agent/pi-openai-api-models-sync.json`:
-
-```json
-{
-  "providerId": "openai-api",
-  "include": ["^gpt-5\\."],
-  "exclude": ["audio", "realtime", "image", "auto-review"]
-}
-```
-
-The provider must already exist in `~/.pi/agent/models.json`:
+No extension configuration is required. The extension automatically discovers every OpenAI-compatible provider in `~/.pi/agent/models.json`. A provider must already exist there:
 
 ```json
 {
@@ -68,14 +58,16 @@ pi --list-models
 
 ## Configuration
 
-The complete configuration is shown in [`config.example.json`](config.example.json).
+Configuration is optional. The built-in defaults are exactly those shown in [`config.example.json`](config.example.json). Create `~/.pi/agent/pi-openai-api-models-sync.json` only when you need to override them.
+
+Set `providerId` to sync only one provider; omit it to auto-discover and sync all OpenAI-compatible providers.
 
 | Field | Default | Description |
 | --- | --- | --- |
-| `providerId` | required | Provider key in `models.json` |
+| `providerId` | all compatible providers | Optional provider key in `models.json` |
 | `pricingUrl` | Sub2API metadata repository | Pricing and capability JSON URL |
 | `include` | `[".*"]` | Regex patterns; a model must match at least one |
-| `exclude` | audio/realtime/image/embedding | Regex patterns removed from the result |
+| `exclude` | audio/realtime/image/embedding/auto-review | Regex patterns removed from the result |
 | `requestTimeoutMs` | `15000` | Timeout for each HTTP request |
 | `defaults` | zero-cost, text, 128K/16K | Metadata used when no matching entry exists |
 | `overrides` | `{}` | Per-model Pi metadata overrides |

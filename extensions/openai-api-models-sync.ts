@@ -44,7 +44,7 @@ type PricingEntry = {
 type ModelOverride = Partial<SyncedModel> & { id?: never };
 
 type ExtensionConfig = {
-  providerId: string;
+  providerId?: string;
   pricingUrl?: string;
   include?: string[];
   exclude?: string[];
@@ -60,6 +60,9 @@ const PER_MILLION = 1_000_000;
 const DEFAULT_PRICING_URL =
   "https://raw.githubusercontent.com/Wei-Shaw/model-price-repo/main/model_prices_and_context_window.json";
 const DEFAULT_COST: Cost = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+const DEFAULT_INCLUDE = [".*"];
+const DEFAULT_EXCLUDE = ["audio", "realtime", "image", "embedding", "auto-review"];
+const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MODEL: Omit<SyncedModel, "id" | "name"> = {
   reasoning: false,
   input: ["text"],
@@ -72,9 +75,16 @@ function readJson<T>(path: string): T {
   return JSON.parse(readFileSync(path, "utf8")) as T;
 }
 
-function loadConfig(): ExtensionConfig | undefined {
+function loadConfig(): ExtensionConfig {
   if (existsSync(CONFIG_PATH)) return readJson<ExtensionConfig>(CONFIG_PATH);
-  return undefined;
+  return {};
+}
+
+function isOpenAiCompatibleProvider(provider: StoredProviderConfig): boolean {
+  return Boolean(
+    provider.baseUrl &&
+    (provider.api === "openai-responses" || provider.api === "openai-completions"),
+  );
 }
 
 function resolveValue(value: string | undefined): string | undefined {
@@ -218,32 +228,27 @@ function mergeModel(base: SyncedModel, override: ModelOverride | undefined): Syn
 }
 
 export default async function openAiApiModelsSync(pi: ExtensionAPI): Promise<void> {
-  const config = loadConfig();
-  if (!config?.providerId) {
-    console.warn(`[pi-openai-api-models-sync] Missing ${CONFIG_PATH}; extension is inactive.`);
-    return;
-  }
   if (!existsSync(MODELS_PATH)) {
     console.warn(`[pi-openai-api-models-sync] Missing ${MODELS_PATH}; extension is inactive.`);
     return;
   }
 
+  const config = loadConfig();
   const modelsJson = readJson<ModelsJson>(MODELS_PATH);
-  const provider = modelsJson.providers?.[config.providerId];
-  if (!provider) {
-    console.warn(`[pi-openai-api-models-sync] Provider '${config.providerId}' not found in ${MODELS_PATH}.`);
+  const providers = Object.entries(modelsJson.providers ?? {});
+  const selectedProviders = config.providerId
+    ? providers.filter(([providerId]) => providerId === config.providerId)
+    : providers.filter(([, provider]) => isOpenAiCompatibleProvider(provider));
+
+  if (selectedProviders.length === 0) {
+    const reason = config.providerId
+      ? `Provider '${config.providerId}' was not found`
+      : "No OpenAI-compatible providers were found";
+    console.warn(`[pi-openai-api-models-sync] ${reason} in ${MODELS_PATH}.`);
     return;
   }
 
-  const timeoutMs = config.requestTimeoutMs ?? 15_000;
-  let remoteModels: Awaited<ReturnType<typeof fetchModels>>;
-  try {
-    remoteModels = await fetchModels(provider, timeoutMs);
-  } catch (error) {
-    console.warn(`[pi-openai-api-models-sync] Model sync skipped: ${errorMessage(error)}`);
-    return;
-  }
-
+  const timeoutMs = config.requestTimeoutMs ?? DEFAULT_TIMEOUT_MS;
   let pricing: Record<string, PricingEntry> = {};
   try {
     pricing = await fetchPricing(config.pricingUrl ?? DEFAULT_PRICING_URL, timeoutMs);
@@ -251,39 +256,52 @@ export default async function openAiApiModelsSync(pi: ExtensionAPI): Promise<voi
     console.warn(`[pi-openai-api-models-sync] Pricing unavailable; using defaults: ${errorMessage(error)}`);
   }
 
-  const include = (config.include ?? [".*"]).map((pattern) => new RegExp(pattern));
-  const exclude = (config.exclude ?? ["audio", "realtime", "image", "embedding"]).map(
-    (pattern) => new RegExp(pattern),
-  );
+  const include = (config.include ?? DEFAULT_INCLUDE).map((pattern) => new RegExp(pattern));
+  const exclude = (config.exclude ?? DEFAULT_EXCLUDE).map((pattern) => new RegExp(pattern));
   const defaults = { ...DEFAULT_MODEL, ...(config.defaults ?? {}) };
 
-  const models = remoteModels
-    .filter((model) => shouldInclude(model.id, include, exclude))
-    .map((model): SyncedModel => {
-      const entry = pricing[model.id];
-      const thinking = pricingToThinking(entry);
-      return mergeModel(
-        {
-          id: model.id,
-          name: modelName(model.id, model.display_name ?? model.name),
-          reasoning: thinking.reasoning,
-          thinkingLevelMap: thinking.thinkingLevelMap,
-          input: pricingToInput(entry) ?? defaults.input ?? DEFAULT_MODEL.input,
-          contextWindow: entry?.max_input_tokens ?? defaults.contextWindow ?? DEFAULT_MODEL.contextWindow,
-          maxTokens: entry?.max_output_tokens ?? entry?.max_tokens ?? defaults.maxTokens ?? DEFAULT_MODEL.maxTokens,
-          cost: pricingToCost(entry) ?? defaults.cost ?? DEFAULT_COST,
-          compat: defaults.compat,
-        },
-        config.overrides?.[model.id],
-      );
-    });
+  await Promise.all(
+    selectedProviders.map(async ([providerId, provider]) => {
+      let remoteModels: Awaited<ReturnType<typeof fetchModels>>;
+      try {
+        remoteModels = await fetchModels(provider, timeoutMs);
+      } catch (error) {
+        console.warn(
+          `[pi-openai-api-models-sync] Model sync skipped for '${providerId}': ${errorMessage(error)}`,
+        );
+        return;
+      }
 
-  if (models.length === 0) {
-    console.warn(`[pi-openai-api-models-sync] No models matched provider '${config.providerId}'.`);
-    return;
-  }
+      const models = remoteModels
+        .filter((model) => shouldInclude(model.id, include, exclude))
+        .map((model): SyncedModel => {
+          const entry = pricing[model.id];
+          const thinking = pricingToThinking(entry);
+          return mergeModel(
+            {
+              id: model.id,
+              name: modelName(model.id, model.display_name ?? model.name),
+              reasoning: thinking.reasoning,
+              thinkingLevelMap: thinking.thinkingLevelMap,
+              input: pricingToInput(entry) ?? defaults.input ?? DEFAULT_MODEL.input,
+              contextWindow: entry?.max_input_tokens ?? defaults.contextWindow ?? DEFAULT_MODEL.contextWindow,
+              maxTokens:
+                entry?.max_output_tokens ?? entry?.max_tokens ?? defaults.maxTokens ?? DEFAULT_MODEL.maxTokens,
+              cost: pricingToCost(entry) ?? defaults.cost ?? DEFAULT_COST,
+              compat: defaults.compat,
+            },
+            config.overrides?.[model.id],
+          );
+        });
 
-  pi.registerProvider(config.providerId, { ...provider, models });
+      if (models.length === 0) {
+        console.warn(`[pi-openai-api-models-sync] No models matched provider '${providerId}'.`);
+        return;
+      }
+
+      pi.registerProvider(providerId, { ...provider, models });
+    }),
+  );
 }
 
 function errorMessage(error: unknown): string {

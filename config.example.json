@@ -1,9 +1,10 @@
 {
-  "providerId": "openai-api",
   "pricingUrl": "https://raw.githubusercontent.com/Wei-Shaw/model-price-repo/main/model_prices_and_context_window.json",
-  "include": ["^gpt-5\\."],
-  "exclude": ["audio", "realtime", "image", "auto-review"],
+  "include": [".*"],
+  "exclude": ["audio", "realtime", "image", "embedding", "auto-review"],
+  "requestTimeoutMs": 15000,
   "defaults": {
+    "reasoning": false,
     "input": ["text"],
     "contextWindow": 128000,
     "maxTokens": 16384,
@@ -14,20 +15,5 @@
       "cacheWrite": 0
     }
   },
-  "overrides": {
-    "example-model-id": {
-      "contextWindow": 200000,
-      "maxTokens": 32000,
-      "reasoning": true,
-      "thinkingLevelMap": {
-        "off": null,
-        "minimal": null,
-        "low": "low",
-        "medium": "medium",
-        "high": "high",
-        "xhigh": null,
-        "max": null
-      }
-    }
-  }
+  "overrides": {}
 }
