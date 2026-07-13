@@ -1,5 +1,5 @@
 {
-  "providerId": "sub2api",
+  "providerId": "openai-api",
   "pricingUrl": "https://raw.githubusercontent.com/Wei-Shaw/model-price-repo/main/model_prices_and_context_window.json",
   "include": ["^gpt-5\\."],
   "exclude": ["audio", "realtime", "image", "auto-review"],

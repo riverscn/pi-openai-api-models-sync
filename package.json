@@ -1,16 +1,16 @@
 {
-  "name": "pi-sub2api-models-sync",
-  "version": "0.1.0",
-  "description": "Pi extension that syncs Sub2API models and enriches them with pricing, context, modalities, and reasoning levels.",
+  "name": "pi-openai-api-models-sync",
+  "version": "0.2.0",
+  "description": "Pi extension that syncs models from an OpenAI-compatible API and enriches them with pricing and capability metadata.",
   "license": "MIT",
   "author": "Shun Li <riverscn@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/riverscn/pi-sub2api-models-sync.git"
+    "url": "git+https://github.com/riverscn/pi-openai-api-models-sync.git"
   },
-  "homepage": "https://github.com/riverscn/pi-sub2api-models-sync#readme",
+  "homepage": "https://github.com/riverscn/pi-openai-api-models-sync#readme",
   "bugs": {
-    "url": "https://github.com/riverscn/pi-sub2api-models-sync/issues"
+    "url": "https://github.com/riverscn/pi-openai-api-models-sync/issues"
   },
   "keywords": [
     "pi-package",
@@ -25,11 +25,12 @@
     "extensions",
     "config.example.json",
     "README.md",
+    "README_CN.md",
     "LICENSE"
   ],
   "pi": {
     "extensions": [
-      "./extensions/sub2api-models-sync.ts"
+      "./extensions/openai-api-models-sync.ts"
     ]
   },
   "scripts": {

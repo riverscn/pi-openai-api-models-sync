@@ -54,8 +54,7 @@ type ExtensionConfig = {
 };
 
 const AGENT_DIR = join(homedir(), CONFIG_DIR_NAME, "agent");
-const CONFIG_PATH = join(AGENT_DIR, "sub2api-models-sync.json");
-const LEGACY_CONFIG_PATH = join(AGENT_DIR, "sync-openai-models.json");
+const CONFIG_PATH = join(AGENT_DIR, "pi-openai-api-models-sync.json");
 const MODELS_PATH = join(AGENT_DIR, "models.json");
 const PER_MILLION = 1_000_000;
 const DEFAULT_PRICING_URL =
@@ -75,7 +74,6 @@ function readJson<T>(path: string): T {
 
 function loadConfig(): ExtensionConfig | undefined {
   if (existsSync(CONFIG_PATH)) return readJson<ExtensionConfig>(CONFIG_PATH);
-  if (existsSync(LEGACY_CONFIG_PATH)) return readJson<ExtensionConfig>(LEGACY_CONFIG_PATH);
   return undefined;
 }
 
@@ -219,21 +217,21 @@ function mergeModel(base: SyncedModel, override: ModelOverride | undefined): Syn
   };
 }
 
-export default async function sub2apiModelsSync(pi: ExtensionAPI): Promise<void> {
+export default async function openAiApiModelsSync(pi: ExtensionAPI): Promise<void> {
   const config = loadConfig();
   if (!config?.providerId) {
-    console.warn(`[pi-sub2api-models-sync] Missing ${CONFIG_PATH}; extension is inactive.`);
+    console.warn(`[pi-openai-api-models-sync] Missing ${CONFIG_PATH}; extension is inactive.`);
     return;
   }
   if (!existsSync(MODELS_PATH)) {
-    console.warn(`[pi-sub2api-models-sync] Missing ${MODELS_PATH}; extension is inactive.`);
+    console.warn(`[pi-openai-api-models-sync] Missing ${MODELS_PATH}; extension is inactive.`);
     return;
   }
 
   const modelsJson = readJson<ModelsJson>(MODELS_PATH);
   const provider = modelsJson.providers?.[config.providerId];
   if (!provider) {
-    console.warn(`[pi-sub2api-models-sync] Provider '${config.providerId}' not found in ${MODELS_PATH}.`);
+    console.warn(`[pi-openai-api-models-sync] Provider '${config.providerId}' not found in ${MODELS_PATH}.`);
     return;
   }
 
@@ -242,7 +240,7 @@ export default async function sub2apiModelsSync(pi: ExtensionAPI): Promise<void>
   try {
     remoteModels = await fetchModels(provider, timeoutMs);
   } catch (error) {
-    console.warn(`[pi-sub2api-models-sync] Model sync skipped: ${errorMessage(error)}`);
+    console.warn(`[pi-openai-api-models-sync] Model sync skipped: ${errorMessage(error)}`);
     return;
   }
 
@@ -250,7 +248,7 @@ export default async function sub2apiModelsSync(pi: ExtensionAPI): Promise<void>
   try {
     pricing = await fetchPricing(config.pricingUrl ?? DEFAULT_PRICING_URL, timeoutMs);
   } catch (error) {
-    console.warn(`[pi-sub2api-models-sync] Pricing unavailable; using defaults: ${errorMessage(error)}`);
+    console.warn(`[pi-openai-api-models-sync] Pricing unavailable; using defaults: ${errorMessage(error)}`);
   }
 
   const include = (config.include ?? [".*"]).map((pattern) => new RegExp(pattern));
@@ -281,7 +279,7 @@ export default async function sub2apiModelsSync(pi: ExtensionAPI): Promise<void>
     });
 
   if (models.length === 0) {
-    console.warn(`[pi-sub2api-models-sync] No models matched provider '${config.providerId}'.`);
+    console.warn(`[pi-openai-api-models-sync] No models matched provider '${config.providerId}'.`);
     return;
   }
 
