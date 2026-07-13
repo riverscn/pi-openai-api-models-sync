@@ -96,7 +96,9 @@ Prefer environment references such as `$OPENAI_API_KEY` instead of storing a lit
 
 ```bash
 npm install
+npm test
 npm run typecheck
+npm run lint
 pi --no-extensions -e ./extensions/openai-api-models-sync.ts --list-models
 ```
 

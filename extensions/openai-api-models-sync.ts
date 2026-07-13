@@ -1,13 +1,13 @@
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import {
   CONFIG_DIR_NAME,
   type ExtensionAPI,
   type ProviderConfig,
   type ProviderModelConfig,
 } from "@earendil-works/pi-coding-agent";
-import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
 
 type Cost = ProviderModelConfig["cost"];
 type ThinkingLevelMap = NonNullable<ProviderModelConfig["thinkingLevelMap"]>;
@@ -18,7 +18,7 @@ type ModelsJson = {
   providers?: Record<string, StoredProviderConfig>;
 };
 
-type PricingEntry = {
+export type PricingEntry = {
   input_cost_per_token?: number;
   output_cost_per_token?: number;
   cache_read_input_token_cost?: number;
@@ -83,7 +83,7 @@ function loadConfig(): ExtensionConfig {
 function isOpenAiCompatibleProvider(provider: StoredProviderConfig): boolean {
   return Boolean(
     provider.baseUrl &&
-    (provider.api === "openai-responses" || provider.api === "openai-completions"),
+      (provider.api === "openai-responses" || provider.api === "openai-completions"),
   );
 }
 
@@ -107,12 +107,16 @@ function modelName(id: string, displayName?: string): string {
   if (displayName && displayName !== id) return displayName;
   return id
     .split("-")
-    .map((part) => (part.toUpperCase() === part ? part : part.charAt(0).toUpperCase() + part.slice(1)))
+    .map((part) =>
+      part.toUpperCase() === part ? part : part.charAt(0).toUpperCase() + part.slice(1),
+    )
     .join(" ");
 }
 
-function shouldInclude(id: string, include: RegExp[], exclude: RegExp[]): boolean {
-  return include.some((pattern) => pattern.test(id)) && !exclude.some((pattern) => pattern.test(id));
+export function shouldInclude(id: string, include: RegExp[], exclude: RegExp[]): boolean {
+  return (
+    include.some((pattern) => pattern.test(id)) && !exclude.some((pattern) => pattern.test(id))
+  );
 }
 
 async function fetchModels(
@@ -138,7 +142,8 @@ async function fetchModels(
   const payload = (await response.json()) as {
     data?: Array<{ id: string; display_name?: string; name?: string }>;
   };
-  if (!Array.isArray(payload.data)) throw new Error("GET /models response did not contain a data array");
+  if (!Array.isArray(payload.data))
+    throw new Error("GET /models response did not contain a data array");
   return payload.data.filter((model) => typeof model.id === "string" && model.id.length > 0);
 }
 
@@ -152,7 +157,7 @@ function perMillion(value: number | undefined): number {
   return (value ?? 0) * PER_MILLION;
 }
 
-function pricingToCost(entry: PricingEntry | undefined): Cost | undefined {
+export function pricingToCost(entry: PricingEntry | undefined): Cost | undefined {
   if (!entry) return undefined;
 
   const cost: Cost = {
@@ -163,23 +168,29 @@ function pricingToCost(entry: PricingEntry | undefined): Cost | undefined {
   };
 
   const threshold = entry.long_context_input_token_threshold ?? 272_000;
-  const longInput = entry.input_cost_per_token_above_272k_tokens ??
+  const longInput =
+    entry.input_cost_per_token_above_272k_tokens ??
     multiply(entry.input_cost_per_token, entry.long_context_input_cost_multiplier);
-  const longOutput = entry.output_cost_per_token_above_272k_tokens ??
+  const longOutput =
+    entry.output_cost_per_token_above_272k_tokens ??
     multiply(entry.output_cost_per_token, entry.long_context_output_cost_multiplier);
-  const longCacheRead = entry.cache_read_input_token_cost_above_272k_tokens ??
+  const longCacheRead =
+    entry.cache_read_input_token_cost_above_272k_tokens ??
     multiply(entry.cache_read_input_token_cost, entry.long_context_input_cost_multiplier);
-  const longCacheWrite = entry.cache_creation_input_token_cost_above_272k_tokens ??
+  const longCacheWrite =
+    entry.cache_creation_input_token_cost_above_272k_tokens ??
     multiply(entry.cache_creation_input_token_cost, entry.long_context_input_cost_multiplier);
 
   if ([longInput, longOutput, longCacheRead, longCacheWrite].some((value) => value !== undefined)) {
-    cost.tiers = [{
-      inputTokensAbove: threshold,
-      input: perMillion(longInput ?? entry.input_cost_per_token),
-      output: perMillion(longOutput ?? entry.output_cost_per_token),
-      cacheRead: perMillion(longCacheRead ?? entry.cache_read_input_token_cost),
-      cacheWrite: perMillion(longCacheWrite ?? entry.cache_creation_input_token_cost),
-    }];
+    cost.tiers = [
+      {
+        inputTokensAbove: threshold,
+        input: perMillion(longInput ?? entry.input_cost_per_token),
+        output: perMillion(longOutput ?? entry.output_cost_per_token),
+        cacheRead: perMillion(longCacheRead ?? entry.cache_read_input_token_cost),
+        cacheWrite: perMillion(longCacheWrite ?? entry.cache_creation_input_token_cost),
+      },
+    ];
   }
 
   return cost;
@@ -189,7 +200,7 @@ function multiply(value: number | undefined, multiplier: number | undefined): nu
   return value !== undefined && multiplier !== undefined ? value * multiplier : undefined;
 }
 
-function pricingToThinking(entry: PricingEntry | undefined): {
+export function pricingToThinking(entry: PricingEntry | undefined): {
   reasoning: boolean;
   thinkingLevelMap?: ThinkingLevelMap;
 } {
@@ -220,9 +231,10 @@ function mergeModel(base: SyncedModel, override: ModelOverride | undefined): Syn
     ...base,
     ...override,
     id: base.id,
-    thinkingLevelMap: override.thinkingLevelMap === undefined
-      ? base.thinkingLevelMap
-      : { ...(base.thinkingLevelMap ?? {}), ...override.thinkingLevelMap },
+    thinkingLevelMap:
+      override.thinkingLevelMap === undefined
+        ? base.thinkingLevelMap
+        : { ...(base.thinkingLevelMap ?? {}), ...override.thinkingLevelMap },
     cost: override.cost === undefined ? base.cost : { ...base.cost, ...override.cost },
   };
 }
@@ -253,7 +265,9 @@ export default async function openAiApiModelsSync(pi: ExtensionAPI): Promise<voi
   try {
     pricing = await fetchPricing(config.pricingUrl ?? DEFAULT_PRICING_URL, timeoutMs);
   } catch (error) {
-    console.warn(`[pi-openai-api-models-sync] Pricing unavailable; using defaults: ${errorMessage(error)}`);
+    console.warn(
+      `[pi-openai-api-models-sync] Pricing unavailable; using defaults: ${errorMessage(error)}`,
+    );
   }
 
   const include = (config.include ?? DEFAULT_INCLUDE).map((pattern) => new RegExp(pattern));
@@ -284,9 +298,13 @@ export default async function openAiApiModelsSync(pi: ExtensionAPI): Promise<voi
               reasoning: thinking.reasoning,
               thinkingLevelMap: thinking.thinkingLevelMap,
               input: pricingToInput(entry) ?? defaults.input ?? DEFAULT_MODEL.input,
-              contextWindow: entry?.max_input_tokens ?? defaults.contextWindow ?? DEFAULT_MODEL.contextWindow,
+              contextWindow:
+                entry?.max_input_tokens ?? defaults.contextWindow ?? DEFAULT_MODEL.contextWindow,
               maxTokens:
-                entry?.max_output_tokens ?? entry?.max_tokens ?? defaults.maxTokens ?? DEFAULT_MODEL.maxTokens,
+                entry?.max_output_tokens ??
+                entry?.max_tokens ??
+                defaults.maxTokens ??
+                DEFAULT_MODEL.maxTokens,
               cost: pricingToCost(entry) ?? defaults.cost ?? DEFAULT_COST,
               compat: defaults.compat,
             },

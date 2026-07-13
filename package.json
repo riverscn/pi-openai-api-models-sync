@@ -26,20 +26,29 @@
     "config.example.json",
     "README.md",
     "README_CN.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "pi": {
     "extensions": [
       "./extensions/openai-api-models-sync.ts"
     ]
   },
   "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.3",
     "@earendil-works/pi-coding-agent": "^0.80.6",
     "@types/node": "^22.0.0",
     "typescript": "^5.8.0"
