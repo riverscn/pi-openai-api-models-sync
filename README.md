@@ -27,7 +27,7 @@ This project is independent and is not affiliated with or endorsed by Sub2API.
 ## Install
 
 ```bash
-pi install git:github.com/riverscn/pi-openai-api-models-sync
+pi install npm:pi-openai-api-models-sync
 ```
 
 No extension configuration is required. The extension automatically discovers every OpenAI-compatible provider in `~/.pi/agent/models.json`. A provider must already exist there:

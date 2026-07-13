@@ -1,6 +1,6 @@
 {
   "name": "pi-openai-api-models-sync",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Pi extension that syncs models from an OpenAI-compatible API and enriches them with pricing and capability metadata.",
   "license": "MIT",
   "author": "Shun Li <riverscn@gmail.com>",
