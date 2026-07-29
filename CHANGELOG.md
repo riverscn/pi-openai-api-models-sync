@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2](https://github.com/riverscn/pi-openai-api-models-sync/compare/v0.3.1...v0.3.2) (2026-07-29)
+
+
+### Bug Fixes
+
+* simplify extension display label ([134e005](https://github.com/riverscn/pi-openai-api-models-sync/commit/134e00538e2879fd8ef1217589e93adcd84355cf))
+
 ## [Unreleased]
 
 ### Changed
