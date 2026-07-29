@@ -1,10 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  pricingToCost,
-  pricingToThinking,
-  shouldInclude,
-} from "../extensions/openai-api-models-sync.ts";
+import { pricingToCost, pricingToThinking, shouldInclude } from "../extensions/index.ts";
 
 describe("pricingToCost", () => {
   it("converts per-token prices to Pi per-million-token prices", () => {

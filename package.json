@@ -34,7 +34,7 @@
   },
   "pi": {
     "extensions": [
-      "./extensions/openai-api-models-sync.ts"
+      "./extensions/index.ts"
     ]
   },
   "scripts": {

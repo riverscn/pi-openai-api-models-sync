@@ -99,7 +99,7 @@ npm install
 npm test
 npm run typecheck
 npm run lint
-pi --no-extensions -e ./extensions/openai-api-models-sync.ts --list-models
+pi --no-extensions -e ./extensions/index.ts --list-models
 ```
 
 ## 许可证
