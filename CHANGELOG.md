@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Use the conventional `extensions/index.ts` entry point for a cleaner Pi Extensions label.
+- Use the conventional `extensions/index.ts` entry point so Pi omits the source filename from the Extensions label.
 
 ## [0.3.1] - 2026-07-13
 
