@@ -8,7 +8,7 @@ A [Pi](https://pi.dev) extension package that syncs models from an OpenAI-compat
 
 At Pi startup, the extension:
 
-1. Finds all `openai-responses` and `openai-completions` providers in `~/.pi/agent/models.json`.
+1. Finds all `openai-responses` and `openai-completions` providers in the active Pi agent directory's `models.json` (default: `~/.pi/agent/models.json`).
 2. Requests `<baseUrl>/models` with each provider's configured authentication.
 3. Fetches model pricing and capability metadata.
 4. Intersects the available model IDs with the metadata.
@@ -30,7 +30,7 @@ This project is independent and is not affiliated with or endorsed by Sub2API.
 pi install npm:pi-openai-api-models-sync
 ```
 
-No extension configuration is required. The extension automatically discovers every OpenAI-compatible provider in `~/.pi/agent/models.json`. A provider must already exist there:
+No extension configuration is required. The extension automatically discovers every OpenAI-compatible provider in the active Pi agent directory's `models.json`. A provider must already exist there:
 
 ```json
 {
@@ -58,7 +58,15 @@ pi --list-models
 
 ## Configuration
 
-Configuration is optional. The built-in defaults are exactly those shown in [`config.example.json`](config.example.json). Create `~/.pi/agent/pi-openai-api-models-sync.json` only when you need to override them.
+Configuration is optional. The built-in defaults are exactly those shown in [`config.example.json`](config.example.json). Create `pi-openai-api-models-sync.json` in the same agent directory only when you need to override them.
+
+Both files are resolved through Pi's `getAgentDir()` when the extension initializes. The default directory is `~/.pi/agent`; `PI_CODING_AGENT_DIR` selects a custom directory, with Pi handling tilde expansion:
+
+```bash
+PI_CODING_AGENT_DIR=~/my-agent pi --list-models
+```
+
+For an SDK host that passes an explicit `agentDir`, also set `PI_CODING_AGENT_DIR` to that directory before initializing the extension. SDK session options alone do not change the process-level directory returned by `getAgentDir()`.
 
 Set `providerId` to sync only one provider; omit it to auto-discover and sync all OpenAI-compatible providers.
 

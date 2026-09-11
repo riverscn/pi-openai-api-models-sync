@@ -1,10 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import {
-  CONFIG_DIR_NAME,
   type ExtensionAPI,
+  getAgentDir,
   type ProviderConfig,
   type ProviderModelConfig,
 } from "@earendil-works/pi-coding-agent";
@@ -53,9 +52,6 @@ type ExtensionConfig = {
   overrides?: Record<string, ModelOverride>;
 };
 
-const AGENT_DIR = join(homedir(), CONFIG_DIR_NAME, "agent");
-const CONFIG_PATH = join(AGENT_DIR, "pi-openai-api-models-sync.json");
-const MODELS_PATH = join(AGENT_DIR, "models.json");
 const PER_MILLION = 1_000_000;
 const DEFAULT_PRICING_URL =
   "https://raw.githubusercontent.com/Wei-Shaw/model-price-repo/main/model_prices_and_context_window.json";
@@ -75,8 +71,8 @@ function readJson<T>(path: string): T {
   return JSON.parse(readFileSync(path, "utf8")) as T;
 }
 
-function loadConfig(): ExtensionConfig {
-  if (existsSync(CONFIG_PATH)) return readJson<ExtensionConfig>(CONFIG_PATH);
+function loadConfig(configPath: string): ExtensionConfig {
+  if (existsSync(configPath)) return readJson<ExtensionConfig>(configPath);
   return {};
 }
 
@@ -240,13 +236,16 @@ function mergeModel(base: SyncedModel, override: ModelOverride | undefined): Syn
 }
 
 export default async function openAiApiModelsSync(pi: ExtensionAPI): Promise<void> {
-  if (!existsSync(MODELS_PATH)) {
-    console.warn(`[pi-openai-api-models-sync] Missing ${MODELS_PATH}; extension is inactive.`);
+  const agentDir = getAgentDir();
+  const modelsPath = join(agentDir, "models.json");
+  const configPath = join(agentDir, "pi-openai-api-models-sync.json");
+  if (!existsSync(modelsPath)) {
+    console.warn(`[pi-openai-api-models-sync] Missing ${modelsPath}; extension is inactive.`);
     return;
   }
 
-  const config = loadConfig();
-  const modelsJson = readJson<ModelsJson>(MODELS_PATH);
+  const config = loadConfig(configPath);
+  const modelsJson = readJson<ModelsJson>(modelsPath);
   const providers = Object.entries(modelsJson.providers ?? {});
   const selectedProviders = config.providerId
     ? providers.filter(([providerId]) => providerId === config.providerId)
@@ -256,7 +255,7 @@ export default async function openAiApiModelsSync(pi: ExtensionAPI): Promise<voi
     const reason = config.providerId
       ? `Provider '${config.providerId}' was not found`
       : "No OpenAI-compatible providers were found";
-    console.warn(`[pi-openai-api-models-sync] ${reason} in ${MODELS_PATH}.`);
+    console.warn(`[pi-openai-api-models-sync] ${reason} in ${modelsPath}.`);
     return;
   }
 
