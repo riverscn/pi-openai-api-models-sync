@@ -8,7 +8,7 @@
 
 Pi 启动时，扩展会：
 
-1. 从 `~/.pi/agent/models.json` 自动发现全部 `openai-responses` 和 `openai-completions` provider。
+1. 从当前 Pi agent 目录的 `models.json` 自动发现全部 `openai-responses` 和 `openai-completions` provider（默认路径为 `~/.pi/agent/models.json`）。
 2. 使用各 provider 配置的认证信息请求 `<baseUrl>/models`。
 3. 获取模型价格与能力元数据。
 4. 按模型 ID 合并可用模型列表和元数据。
@@ -30,7 +30,7 @@ OpenAI-compatible API 是“模型当前是否可用”的权威来源。元数�
 pi install npm:pi-openai-api-models-sync
 ```
 
-扩展不要求额外配置，会自动发现 `~/.pi/agent/models.json` 中所有 OpenAI-compatible provider。对应 provider 只需已经存在于该文件中：
+扩展不要求额外配置，会自动发现当前 Pi agent 目录的 `models.json` 中所有 OpenAI-compatible provider。对应 provider 只需已经存在于该文件中：
 
 ```json
 {
@@ -58,7 +58,15 @@ pi --list-models
 
 ## 配置
 
-配置文件是可选的。扩展内置默认值与 [`config.example.json`](config.example.json) 完全一致。只有需要覆盖默认行为时，才需要创建 `~/.pi/agent/pi-openai-api-models-sync.json`。
+配置文件是可选的。扩展内置默认值与 [`config.example.json`](config.example.json) 完全一致。只有需要覆盖默认行为时，才需要在同一 agent 目录中创建 `pi-openai-api-models-sync.json`。
+
+扩展在每次初始化时通过 Pi 的 `getAgentDir()` 解析这两个文件的目录。默认目录为 `~/.pi/agent`，可通过 `PI_CODING_AGENT_DIR` 指定其他目录，`~` 路径由 Pi 负责展开：
+
+```bash
+PI_CODING_AGENT_DIR=~/my-agent pi --list-models
+```
+
+如果 SDK 宿主显式传入 `agentDir`，还需要在初始化扩展前将 `PI_CODING_AGENT_DIR` 设为同一目录。SDK 会话参数本身不会改变 `getAgentDir()` 返回的进程级目录。
 
 设置 `providerId` 时只同步指定 provider；省略时会自动发现并同步所有 OpenAI-compatible provider。
 
